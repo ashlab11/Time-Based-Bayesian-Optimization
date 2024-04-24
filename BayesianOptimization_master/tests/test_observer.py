@@ -1,6 +1,6 @@
-from bayes_opt.bayesian_optimization import Observable
-from bayes_opt.observer import _Tracker
-from bayes_opt.event import Events
+from bayes_opt1.bayesian_optimization import Observable
+from bayes_opt1.observer import _Tracker
+from bayes_opt1.event import Events
 import os
 
 

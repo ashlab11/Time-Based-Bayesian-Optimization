@@ -1,5 +1,5 @@
 import pytest
-from bayes_opt.bayesian_optimization import Queue
+from bayes_opt1.bayesian_optimization import Queue
 
 
 def test_add():

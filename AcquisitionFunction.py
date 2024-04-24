@@ -25,7 +25,7 @@ def eit(x, gp_fun, gp_time, fun_max, time_min, xi=0.01) -> float:
     
     x: float, the value at which to calculate the acquisition function
     
-    gp_fun: sklearn GaussianProcessRegressor, the surrogate model for the function
+    gp_fun: skleardn GaussianProcessRegressor, the surrogate model for the function
     
     gp_time: sklearn GaussianProcessRegressor, the surrogate model for the time
     

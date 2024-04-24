@@ -411,6 +411,25 @@ class TargetSpace():
             return None
 
         return self.target[self.mask].max()
+    
+    def _target_min(self):
+        """Get the minimum target value within the current parameter bounds.
+        
+        If there is a constraint present, the maximum value that fulfills the
+        constraint within the parameter bounds is returned.
+
+        Returns
+        -------
+        inx: float
+            The minimum target value.
+        """
+        if len(self.target) == 0:
+            return None
+
+        if len(self.target[self.mask]) == 0:
+            return None
+
+        return self.target[self.mask].min()
 
     def max(self):
         """Get maximum target value found and corresponding parameters.

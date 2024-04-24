@@ -4,9 +4,10 @@ import warnings
 import numpy as np
 from scipy.stats import norm
 from scipy.optimize import minimize
+from scipy.integrate import quad
 
 
-def acq_max(ac, gp, y_max, bounds, random_state, constraint=None, n_warmup=10000, n_iter=10, y_max_params=None):
+def acq_max(ac, gp, gp_time, time_min, y_max, bounds, random_state, constraint=None, n_warmup=10000, n_iter=10, y_max_params=None, time_travel=False):
     """Find the maximum of the acquisition function.
 
     It uses a combination of random sampling (cheap) and the 'L-BFGS-B'
@@ -17,7 +18,7 @@ def acq_max(ac, gp, y_max, bounds, random_state, constraint=None, n_warmup=10000
     ----------
     ac : callable
         Acquisition function to use. Should accept an array of parameters `x`,
-        an from sklearn.gaussian_process.GaussianProcessRegressor `gp` and the
+        an from sklearn.gaussian_process. GaussianProcessRegressor `gp` and the
         best current value `y_max` as parameters.
         
     gp : sklearn.gaussian_process.GaussianProcessRegressor
@@ -74,7 +75,12 @@ def acq_max(ac, gp, y_max, bounds, random_state, constraint=None, n_warmup=10000
             """
             # Transforms the problem in a minimization problem, this is necessary
             # because the solver we are using later on is a minimizer
-            values = -ac(x.reshape(-1, bounds.shape[0]), gp=gp, y_max=y_max)
+            values = None
+            if time_travel:
+                values = -ac(x.reshape(-1, bounds.shape[0]), gp=gp, gp_time=gp_time, time_min=time_min, y_max=y_max)
+            else:
+                values = -ac(x.reshape(-1, bounds.shape[0]), gp=gp, y_max=y_max)
+
             p_constraints = constraint.predict(x.reshape(-1, bounds.shape[0]))
 
             # Slower fallback for the case where any values are negative
@@ -98,11 +104,15 @@ def acq_max(ac, gp, y_max, bounds, random_state, constraint=None, n_warmup=10000
     else:
         # Transforms the problem in a minimization problem, this is necessary
         # because the solver we are using later on is a minimizer
-        adjusted_ac = lambda x: -ac(x.reshape(-1, bounds.shape[0]), gp=gp, y_max=y_max)
-
+        adjusted_ac = None
+        if time_travel:
+            adjusted_ac = lambda x:  -ac(x.reshape(-1, bounds.shape[0]), gp=gp, gp_time=gp_time, time_min=time_min, y_max=y_max)
+        else:
+            adjusted_ac = lambda x: -ac(x.reshape(-1, bounds.shape[0]), gp=gp, y_max=y_max)
     # Warm up with random points
     x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
                                    size=(n_warmup, bounds.shape[0]))
+    # print(x_tries)
     ys = -adjusted_ac(x_tries)
     x_max = x_tries[ys.argmax()]
     max_acq = ys.max()
@@ -145,10 +155,11 @@ class UtilityFunction():
     
     Parameters
     ----------
-    kind: {'ucb', 'ei', 'poi'}
+    kind: {'ucb', 'ei', 'poi', 'eit'}
         * 'ucb' stands for the Upper Confidence Bounds method
         * 'ei' is the Expected Improvement method
         * 'poi' is the Probability Of Improvement criterion.
+        * 'eit' is the Expected Improvement per unit Time BRILLIANCY LOOK UPON MY WORKS YE MIGHTY AND DISPAIR AHAHHAHAAHAHAHHAHAHAAHAHAHAHAHAAHHAH
     
     kappa: float, optional(default=2.576)
             Parameter to indicate how closed are the next parameters sampled.
@@ -175,7 +186,7 @@ class UtilityFunction():
 
         self._iters_counter = 0
 
-        if kind not in ['ucb', 'ei', 'poi']:
+        if kind not in ['ucb', 'ei', 'poi', 'eit']:
             err = "The utility function " \
                   f"{kind} has not been implemented, " \
                   "please choose one of ucb, ei, or poi."
@@ -189,7 +200,7 @@ class UtilityFunction():
         if self._kappa_decay < 1 and self._iters_counter > self._kappa_decay_delay:
             self.kappa *= self._kappa_decay
 
-    def utility(self, x, gp, y_max):
+    def utility(self, x, gp, gp_time, time_min, y_max):
         """Calculate acquisition function.
 
         Parameters
@@ -213,6 +224,8 @@ class UtilityFunction():
             return self.ucb(x, gp, self.kappa)
         if self.kind == 'ei':
             return self.ei(x, gp, y_max, self.xi)
+        if self.kind == 'eit':
+            return self.eit(x, gp, gp_time, time_min, y_max, self.xi)
         if self.kind == 'poi':
             return self.poi(x, gp, y_max, self.xi)
         raise ValueError(f"{self.kind} is not a valid acquisition function.")
@@ -339,9 +352,68 @@ class UtilityFunction():
             warnings.simplefilter("ignore")
             mean, std = gp.predict(x, return_std=True)
 
-        z = (mean - y_max - xi)/std
+        z = (mean - y_max - xi)/xi
+
         return norm.cdf(z)
 
+    @staticmethod
+    def eit(x, gp, gp_time, time_min, y_max, xi):
+        r"""Calculate Expected Improvement acqusition function.
+
+        Similar to Probability of Improvement (`UtilityFunction.poi`), but also considers the
+        magnitude of improvement.
+        Calculated as
+    
+        .. math::
+            \text{EI}(x) = (\mu(x)-y_{\text{max}} - \xi) \Phi\left(
+                \frac{\mu(x)-y_{\text{max}} -  \xi }{\sigma(x)} \right)
+                  + \sigma(x) \phi\left(
+                    \frac{\mu(x)-y_{\text{max}} -  \xi }{\sigma(x)} \right)
+
+        where :math:`\Phi` is the CDF and :math:`\phi` the PDF of the normal
+        distribution.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Parameters to evaluate the function at.
+
+        gp : sklearn.gaussian_process.GaussianProcessRegressor
+            A gaussian process regressor modelling the target function based on
+            previous observations.
+        
+        y_max : number
+            Highest found value of the target function.
+            
+        xi : float, positive
+            Governs the exploration/exploitation tradeoff. Lower prefers
+            exploitation, higher prefers exploration.
+
+
+        Returns
+        -------
+        Values of the acquisition function
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            mean, std = gp.predict(x, return_std=True)
+            mean_time, std_time = gp_time.predict(x, return_std=True)
+
+        a = mean - y_max - xi
+        z = a / std
+        ei_fun =  a * norm.cdf(z) + std * norm.pdf(z)
+
+        # return ei_fun
+        inverse_times = []
+        for i in range(len(mean_time)):
+            integrand = lambda y: (1/(y * std_time[i] * np.sqrt(2 * np.pi))) * np.exp(-((y - mean_time[i])**2) / (2 * std_time[i]**2))
+            expected_inverse_time, _ = quad(integrand, time_min, np.inf)
+            inverse_times.append(expected_inverse_time)
+
+        # print(np.shape(ei_fun))
+        # print(inverse_times, len(inverse_times))
+    
+        return ei_fun * expected_inverse_time
 
 class NotUniqueError(Exception):
     """A point is non-unique."""

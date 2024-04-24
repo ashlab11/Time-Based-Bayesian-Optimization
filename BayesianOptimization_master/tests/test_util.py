@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 
-from bayes_opt import BayesianOptimization
-from bayes_opt.util import UtilityFunction
-from bayes_opt.util import acq_max, load_logs, ensure_rng
+from bayes_opt1 import BayesianOptimization
+from bayes_opt1.util import UtilityFunction
+from bayes_opt1.util import acq_max, load_logs, ensure_rng
 
 from sklearn.gaussian_process.kernels import Matern
 from sklearn.gaussian_process import GaussianProcessRegressor

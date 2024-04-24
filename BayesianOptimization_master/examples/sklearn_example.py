@@ -3,7 +3,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.ensemble import RandomForestClassifier as RFC
 from sklearn.svm import SVC
 
-from bayes_opt import BayesianOptimization
+from bayes_opt1 import BayesianOptimization
 from colorama import Fore
 
 def get_data():

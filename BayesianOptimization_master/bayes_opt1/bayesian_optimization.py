@@ -4,8 +4,9 @@ Holds the `BayesianOptimization` class, which handles the maximization of a
 function over a specific target space.
 """
 import warnings
+import time
 
-from bayes_opt.constraint import ConstraintModel
+from BayesianOptimization_master.bayes_opt1.constraint import ConstraintModel
 
 from .target_space import TargetSpace
 from .event import Events, DEFAULT_EVENTS
@@ -132,11 +133,12 @@ class BayesianOptimization(Observable):
                  random_state=None,
                  verbose=2,
                  bounds_transformer=None,
-                 allow_duplicate_points=False):
+                 allow_duplicate_points=False,
+                 time_travel=False):
         self._random_state = ensure_rng(random_state)
         self._allow_duplicate_points = allow_duplicate_points
         self._queue = Queue()
-
+        self._time_travel = time_travel
         # Internal GP regressor
         self._gp = GaussianProcessRegressor(
             kernel=Matern(nu=2.5),
@@ -145,6 +147,21 @@ class BayesianOptimization(Observable):
             n_restarts_optimizer=5,
             random_state=self._random_state,
         )
+        # def f_time(f, x, y):
+        #     start_time = time.time()
+        #     result = f(x, y) 
+        #     end_time = time.time() 
+        #     elapsed_time = end_time - start_time  
+        #     return elapsed_time, result
+        
+        if time_travel:
+            self._gp_time = GaussianProcessRegressor(
+            kernel=Matern(nu=2.5),
+            alpha=1e-6,
+            normalize_y=True,
+            n_restarts_optimizer=5,
+            random_state=self._random_state,
+            )
 
         if constraint is None:
             # Data structure containing the function to be optimized, the
@@ -152,6 +169,8 @@ class BayesianOptimization(Observable):
             # done so far
             self._space = TargetSpace(f, pbounds, random_state=random_state,
                                       allow_duplicate_points=self._allow_duplicate_points)
+            self._space_time = TargetSpace(f, pbounds, random_state=random_state, 
+                                           allow_duplicate_points=self._allow_duplicate_points)
             self.is_constrained = False
         else:
             constraint_ = ConstraintModel(
@@ -208,7 +227,7 @@ class BayesianOptimization(Observable):
         """
         return self._space.res()
 
-    def register(self, params, target, constraint_value=None):
+    def register(self, params, target, constraint_value=None, delta_t=None):
         """Register an observation with known target.
 
         Parameters
@@ -223,6 +242,8 @@ class BayesianOptimization(Observable):
             Value of the constraint function at the observation, if any.
         """
         self._space.register(params, target, constraint_value)
+        if self._time_travel:
+            self._space_time.register(params, delta_t, constraint_value)
         self.dispatch(Events.OPTIMIZATION_STEP)
 
     def probe(self, params, lazy=True):
@@ -269,11 +290,14 @@ class BayesianOptimization(Observable):
         # Finding argmax of the acquisition function.
         suggestion = acq_max(ac=utility_function.utility,
                              gp=self._gp,
+                             gp_time=self._gp_time,
+                             time_min = self._space_time._target_min(),
                              constraint=self.constraint,
                              y_max=self._space._target_max(),
                              bounds=self._space.bounds,
                              random_state=self._random_state,
-                             y_max_params=self._space.params_to_array(self._space.max()['params']))
+                             y_max_params=self._space.params_to_array(self._space.max()['params']),
+                             time_travel=self._time_travel)
 
         return self._space.array_to_params(suggestion)
 

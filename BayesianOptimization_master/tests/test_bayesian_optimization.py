@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-from bayes_opt import UtilityFunction
-from bayes_opt import BayesianOptimization
-from bayes_opt.logger import ScreenLogger
-from bayes_opt.event import Events, DEFAULT_EVENTS
-from bayes_opt.util import NotUniqueError
+from bayes_opt1 import UtilityFunction
+from bayes_opt1 import BayesianOptimization
+from bayes_opt1.logger import ScreenLogger
+from bayes_opt1.event import Events, DEFAULT_EVENTS
+from bayes_opt1.util import NotUniqueError
 import pickle
 import os
 

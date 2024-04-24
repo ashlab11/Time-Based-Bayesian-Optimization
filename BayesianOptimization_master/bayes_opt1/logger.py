@@ -4,9 +4,9 @@ import os
 import json
 from .observer import _Tracker
 from .event import Events
-from colorama import Fore, just_fix_windows_console
+from colorama import Fore #, just_fix_windows_console
 
-just_fix_windows_console()
+# just_fix_windows_console()
 
 def _get_default_logger(verbose, is_constrained):
     """

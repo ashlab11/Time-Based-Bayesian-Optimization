@@ -1,8 +1,8 @@
 import time
 import random
 
-from bayes_opt import BayesianOptimization
-from bayes_opt.util import UtilityFunction
+from bayes_opt1 import BayesianOptimization
+from bayes_opt1.util import UtilityFunction
 
 import asyncio
 import threading

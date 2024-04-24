@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from bayes_opt import SequentialDomainReductionTransformer
-from bayes_opt import BayesianOptimization
-from bayes_opt.target_space import TargetSpace
+from bayes_opt1 import SequentialDomainReductionTransformer
+from bayes_opt1 import BayesianOptimization
+from bayes_opt1.target_space import TargetSpace
 
 def black_box_function(x, y):
     """Function with unknown internals we wish to maximize.

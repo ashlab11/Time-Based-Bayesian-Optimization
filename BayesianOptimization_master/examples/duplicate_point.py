@@ -1,6 +1,6 @@
 import numpy as np
-from bayes_opt import BayesianOptimization
-from bayes_opt import UtilityFunction
+from bayes_opt1 import BayesianOptimization
+from bayes_opt1 import UtilityFunction
 
 
 def f(x):

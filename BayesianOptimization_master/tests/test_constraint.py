@@ -1,5 +1,5 @@
 import numpy as np
-from bayes_opt import BayesianOptimization
+from bayes_opt1 import BayesianOptimization
 from pytest import approx, raises
 from scipy.optimize import NonlinearConstraint
 

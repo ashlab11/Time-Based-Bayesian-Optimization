@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./BayesianOptimization-master",
+        "./BayesianOptimization_master"
+    ]
+}

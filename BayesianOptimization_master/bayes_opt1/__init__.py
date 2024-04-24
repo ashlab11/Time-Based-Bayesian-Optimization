@@ -7,7 +7,7 @@ from .constraint import ConstraintModel
 from .util import UtilityFunction
 
 import importlib.metadata
-__version__ = importlib.metadata.version('bayesian-optimization')
+#__version__ = importlib.metadata.version('bayesian-optimization')
 
 
 
