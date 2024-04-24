@@ -14,9 +14,11 @@ def maximize_eit(gp_fun, gp_time, fun_max, time_min, bounds, xi=0.01) -> np.ndar
     xi: float, the exploration-exploitation tradeoff parameter"""
     
     #Need to minimize eit, not maximize it -- so create a negative lambda function on eit
-    eit_neg = lambda x: -eit(x, gp_fun, gp_time, fun_max, time_min, xi)
+    eit_neg = lambda x: -1*eit(x, gp_fun, gp_time, fun_max, time_min, xi)
     optimizing_bounds = Bounds(bounds[:, 0], bounds[:, 1])
-    min_x = minimize(eit_neg, args = (gp_fun, gp_time, fun_max, time_min), bounds = optimizing_bounds)
+    initial_guess = np.random.uniform(bounds[:, 0], bounds[:, 1])
+    min_x = minimize(eit_neg, bounds = optimizing_bounds, x0 = initial_guess, method = 'L-BFGS-B', 
+                     options={'eps': 1e-6, 'gtol': 1e-5}).x
     return min_x
 
 def eit(x, gp_fun, gp_time, fun_max, time_min, xi=0.01) -> float:
@@ -35,17 +37,15 @@ def eit(x, gp_fun, gp_time, fun_max, time_min, xi=0.01) -> float:
     
     xi: float, the exploration-exploitation tradeoff parameter"""
     
-    mean_fun, std_fun = gp_fun.predict(x, return_std=True)
-    mean_time, std_time = gp_time.predict(x, return_std=True)
-    
+    mean_fun, std_fun = gp_fun.predict([x], return_std=True)
+    mean_time, std_time = gp_time.predict([x], return_std=True)    
     #First, calculate the expected improvement at x
     a = mean_fun - fun_max - xi
     z = a / std_fun
     ei_fun = a * norm.cdf(z) + std_fun * norm.pdf(z)
         
     integrand = lambda y: (1/(y * std_time * np.sqrt(2 * np.pi))) * np.exp(-((y - mean_time)**2) / (2 * std_time**2))
-    expected_inverse_time, _ = quad(integrand, time_min, np.inf)
-    
-    return ei_fun / expected_inverse_time
+    expected_inverse_time, error = quad(integrand, time_min, np.inf)
+    return ei_fun * expected_inverse_time
     
     
