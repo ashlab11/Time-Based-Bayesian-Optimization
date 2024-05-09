@@ -405,6 +405,7 @@ class UtilityFunction():
 
         # return ei_fun
         inverse_times = []
+        
         for i in range(len(mean_time)):
             integrand = lambda y: (1/(y * std_time[i] * np.sqrt(2 * np.pi))) * np.exp(-((y - mean_time[i])**2) / (2 * std_time[i]**2))
             expected_inverse_time, _ = quad(integrand, time_min, np.inf)
@@ -413,7 +414,7 @@ class UtilityFunction():
         # print(np.shape(ei_fun))
         # print(inverse_times, len(inverse_times))
     
-        return ei_fun * expected_inverse_time
+        return ei_fun * inverse_times
 
 class NotUniqueError(Exception):
     """A point is non-unique."""
