@@ -402,19 +402,21 @@ class UtilityFunction():
         a = mean - y_max - xi
         z = a / std
         ei_fun =  a * norm.cdf(z) + std * norm.pdf(z)
-
+  
         # return ei_fun
-        inverse_times = []
+        def integrand(y):
+            return 1/y * np.exp(-((y - mean_time)**2) / (2 * std_time**2))
         
-        for i in range(len(mean_time)):
-            integrand = lambda y: (1/(y * std_time[i] * np.sqrt(2 * np.pi))) * np.exp(-((y - mean_time[i])**2) / (2 * std_time[i]**2))
-            expected_inverse_time, _ = quad(integrand, time_min, np.inf)
-            inverse_times.append(expected_inverse_time)
-
-        # print(np.shape(ei_fun))
-        # print(inverse_times, len(inverse_times))
+        if np.ndim(mean_time) == 0:
+            expected_inverse_time, _ = quad(integrand, time_min, mean_time + 3 * std_time) 
+            expected_inverse_times = expected_inverse_time / (std_time * np.sqrt(2 * np.pi))
+        else:
+            max_time = np.max(mean_time + 3*std_time)
+            evaluation_points = np.linspace(time_min, max_time, 1000)
+            expected_inverse_times = (max_time - time_min) * np.array([integrand(y) / (std_time * np.sqrt(2 * np.pi)) 
+                                                                       for y in evaluation_points]).mean(axis = 0)
     
-        return ei_fun * inverse_times
+        return ei_fun * expected_inverse_times
 
 class NotUniqueError(Exception):
     """A point is non-unique."""
