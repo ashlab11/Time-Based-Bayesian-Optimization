@@ -1,4 +1,4 @@
 # BayesOpt
-Bayesian Optimization Algorithm for High-Cost Evaluations
+Bayesian Optimization Algorithm for High-Cost Evaluations. Paper available [here](BayesianOptimizationOverTime.pdf).
 
 This code is an addition to the existing Bayesian Optimization Package, developed [here](https://github.com/bayesian-optimization/BayesianOptimization). We change the [bayesian_optimization.py](BayesianOptimization_master/bayes_opt1/bayesian_optimization.py) file as well as the [util.py](BayesianOptimization_master/bayes_opt1/util.py) file to include **Expected Value Over Time**, a new acquisition function that takes into account both function values and the length required to evaluate them. Our work is found in [Main.ipynb](Main.ipynb), which utilizes an image recognition model defined in [imagerecognitionmodel.py](imagerecognitionmodel.py). We then analyze the values in [Analysis.ipynb](Analysis.ipynb). Our code is all open-source and is completely re-creatable after downloading the cifar-10 dataset online. Alternatively, our results are in [data](data), which can be analyzed freely.
